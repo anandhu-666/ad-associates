@@ -4,385 +4,881 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AD Associates</title>
-    <!-- Tailwind CSS CDN for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- jsPDF and jsPDF-AutoTable for PDF generation - These are no longer needed for the button but kept if other PDF functionality exists -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <!-- Firebase SDKs - Exposed globally for script.js to access -->
-    <script type="module">
-        // Import Firebase modules for Realtime Database, Auth, and Analytics
-        // Using version 9.22.2 as per user's provided imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-        import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js"; // Added for getAnalytics
-
-        // Expose Firebase modules globally for script.js to access
-        // This is necessary because script.js is also a module and needs direct access to these objects
-        window.firebase = { 
-            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, 
-            onAuthStateChanged, getDatabase, ref, onValue, push, set, update,
-            getAnalytics // Exposed getAnalytics
-        };
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
     <style>
-        /* Custom styles to ensure Inter font is applied and general body styling */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* bg-gray-100 */
-            color: #374151; /* text-gray-800 */
-        }
-        /* Hidden class to toggle page visibility */
-        .hidden {
-            display: none;
-        }
-        /* Modal overlay styling */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.75); /* bg-gray-600 bg-opacity-75 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            padding: 1rem;
-        }
-        /* Modal content styling */
-        .modal-content {
-            background-color: #ffffff; /* bg-white */
-            padding: 2rem;
-            border-radius: 0.75rem; /* rounded-xl */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
-            width: 100%;
-            max-width: 32rem; /* max-w-lg */
-        }
-        /* Table responsive styling */
-        table {
-            border-collapse: collapse;
-            width: 100%; /* Ensure table takes full width of its container */
-        }
-        th, td {
-            padding: 12px 24px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
-            white-space: nowrap; /* Prevent text wrapping in table headers/cells */
-        }
-        thead th {
-            background-color: #f9fafb; /* bg-gray-50 */
-        }
-        tbody tr:hover {
-            background-color: #f9fafb; /* hover:bg-gray-50 */
-        }
-        /* Style for editable input fields in tables */
-        .editable-input {
-            width: 100%;
-            background-color: transparent;
-            border: 1px solid #d1d5db; /* border-gray-300 */
-            border-radius: 0.375rem; /* rounded-md */
-            padding: 0.25rem 0.5rem;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .editable-input:focus {
-            outline: none;
-            border-color: #3b82f6; /* focus:border-blue-500 */
-            box-shadow: 0 0 0 1px #3b82f6; /* focus:ring-blue-500 */
-        }
-        .editable-input:disabled {
-            background-color: #e5e7eb; /* bg-gray-200 */
-            cursor: not-allowed;
-            color: #6b7280; /* text-gray-500 */
-            border-color: #d1d5db;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        /* Responsive table overflow for small screens */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+
+        /* Home Page Styles */
+        .home-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-top: 50px;
+            flex-wrap: wrap;
+        }
+
+        .nav-button {
+            background: white;
+            border: none;
+            padding: 25px 40px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            min-width: 180px;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.2);
+            background: #f8f9ff;
+        }
+
+        /* Page Styles */
+        .page {
+            display: none;
+            
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .back-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: #5a6268;
+        }
+
+        /* Button Styles */
+        .add-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .add-button:hover {
+            background: #218838;
+        }
+
+        .edit-button, .increment-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin: 2px;
+            transition: background 0.3s ease;
+        }
+
+        .edit-button:hover, .increment-button:hover {
+            background: #0056b3;
+        }
+
+        .edit-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+            position: sticky;
+            top: 0;
+        }
+
+        tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .total-row {
+            background: #e7f3ff !important;
+            font-weight: bold;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .submit-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .cancel-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .editable-input {
+            background: transparent;
+            border: 1px dashed #ccc;
+            padding: 4px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .overflow-x-auto {
-                overflow-x: auto;
+            .container {
+                padding: 10px;
             }
+
+            .logo {
+                font-size: 2rem;
+            }
+
+            .nav-button {
+                padding: 20px 30px;
+                font-size: 1.1rem;
+                min-width: 150px;
+            }
+
+            .page {
+                padding: 20px;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .table-container {
+                font-size: 0.9rem;
+            }
+
             th, td {
-                padding: 8px 12px;
+                padding: 8px;
             }
-            /* Adjusted min-width for table to accommodate new column */
-            .min-w-full {
-                min-width: 750px; /* Increased to make space for Remarks column */
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 20px;
             }
         }
-        /* Styling for disabled button state */
-        button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            background-image: none; /* Remove gradient for disabled state */
-            background-color: #9ca3af; /* A gray background for disabled */
-            box-shadow: none; /* No shadow when disabled */
+
+        @media (max-width: 480px) {
+            .home-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .nav-button {
+                width: 100%;
+                max-width: 250px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            th, td {
+                padding: 6px;
+                font-size: 0.8rem;
+            }
+        }
+
+        .firebase-config-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">AD Associates</div>
+            <div class="subtitle">Trip & Listing Management System</div>
+        </div>
 
-    <header class="bg-white shadow-md p-4 sticky top-0 z-10">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-3xl font-extrabold text-blue-800 tracking-tight">AD Associates</h1>
-            <div class="flex items-center space-x-4">
-                <span id="userIdDisplay" class="text-sm font-medium text-gray-600">User ID: Loading...</span>
-                <button id="backToHomeBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 hidden">
-                    Back to Home
-                </button>
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <div class="home-container">
+                <button class="nav-button" onclick="showPage('trip')">Trip</button>
+                <button class="nav-button" onclick="showPage('listing')">Listing</button>
             </div>
         </div>
-    </header>
 
-    <main class="flex-grow p-4 md:p-8 flex items-start justify-center">
-
-        <section id="homePage" class="flex flex-col items-center justify-center h-full w-full max-w-md bg-white rounded-xl shadow-2xl p-8 transition duration-500 hover:shadow-xl">
-            <h2 class="text-4xl font-bold text-gray-900 mb-10 text-center">Welcome to AD Associates</h2>
-            <div class="flex flex-col space-y-6 w-full">
-                <button id="tripBtn" class="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-green-700 text-white text-2xl font-semibold rounded-lg shadow-xl hover:from-green-600 hover:to-green-800 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300 hover:shadow-xl">
-                    Trip
-                </button>
-                <button id="listingBtn" class="w-full px-8 py-4 bg-gradient-to-r from-purple-500 to-purple-700 text-white text-2xl font-semibold rounded-lg shadow-xl hover:from-purple-600 hover:to-purple-800 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-purple-300 hover:shadow-xl">
-                    Listing
-                </button>
+        <!-- Trip Page -->
+        <div id="trip" class="page">
+            <div class="page-header">
+                <div class="page-title">Trip Management</div>
+                <button class="back-button" onclick="showPage('home')">← Back</button>
             </div>
-        </section>
-
-        <section id="tripPage" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl transition duration-500 hover:shadow-xl hidden">
-            <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Trip Expenses</h2>
-
-            <div class="flex justify-end p-4 mb-4 bg-blue-50 rounded-lg shadow-inner">
-                <span class="text-xl font-bold text-blue-800">Total Expense: ₹<span id="totalExpenseDisplay">0</span></span>
-            </div>
-
-            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
-                <table id="tripTable" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+            
+            <button class="add-button" onclick="openTripModal()">Add More</button>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Serial No
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Expense
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Starting KM
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                End KM
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Name
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Remarks
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
+                            <th>Serial No</th>
+                            <th>Fuel Expense</th>
+                            <th>Starting KM</th>
+                            <th>End KM</th>
+                            <th>Name</th>
+                            <th>Remarks</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <tbody id="tripTableBody">
+                        <!-- Trip data will be populated here -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="6"><strong>Total Fuel Expense:</strong></td>
+                            <td><strong id="totalFuelExpense">₹0</strong></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
+        </div>
 
-            <div class="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <button id="addTripBtn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 hover:shadow-xl">
-                    Add More Expense
-                </button>
-                <!-- PDF Download button removed as per request -->
+        <!-- Listing Page -->
+        <div id="listing" class="page">
+            <div class="page-header">
+                <div class="page-title">Listing Management</div>
+                <button class="back-button" onclick="showPage('home')">← Back</button>
             </div>
-        </section>
-
-        <section id="listingPage" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl transition duration-500 hover:shadow-xl hidden">
-            <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Item Listing</h2>
-
-            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
-                <table id="listingTable" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+            
+            <button class="add-button" onclick="openListingModal()">Add More</button>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Serial No
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Item Name
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Quantity
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Total Quantity
-                            </th>
+                            <th>Serial No</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Total Quantity</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <tbody id="listingTableBody">
+                        <!-- Listing data will be populated here -->
+                    </tbody>
                 </table>
             </div>
+        </div>
 
-            <div class="mt-8 flex justify-center">
-                <button id="addListingBtn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 hover:shadow-xl">
-                    Add More Item
-                </button>
+        <!-- Trip Modal -->
+        <div id="tripModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">Add Trip Entry</div>
+                <form id="tripForm">
+                    <div class="form-group">
+                        <label for="fuelExpense">Fuel Expense (₹)</label>
+                        <input type="number" id="fuelExpense" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="startingKM">Starting KM</label>
+                        <input type="number" id="startingKM" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endKM">End KM</label>
+                        <input type="number" id="endKM" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="driverName">Name</label>
+                        <input type="text" id="driverName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="remarks">Remarks</label>
+                        <textarea id="remarks" rows="3"></textarea>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="cancel-button" onclick="closeTripModal()">Cancel</button>
+                        <button type="submit" class="submit-button">Submit</button>
+                    </div>
+                </form>
             </div>
-        </section>
+        </div>
 
-    </main>
+        <!-- Listing Modal -->
+        <div id="listingModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">Add Listing Entry</div>
+                <form id="listingForm">
+                    <div class="form-group">
+                        <label for="itemName">Item Name</label>
+                        <input type="text" id="itemName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" id="quantity" min="1" required>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="cancel-button" onclick="closeListingModal()">Cancel</button>
+                        <button type="submit" class="submit-button">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-    <footer class="bg-gray-800 text-white p-4 text-center text-sm">
-        &copy; <span id="currentYear"></span> AD Associates. All rights reserved.
-    </footer>
-
-    <div id="tripModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="text-2xl font-bold mb-6 text-center text-gray-800">Add New Trip Expense</h3>
-            <form id="tripForm" class="space-y-4">
-                <div>
-                    <label for="tripExpense" class="block text-sm font-medium text-gray-700 mb-1">
-                        Expense:
-                    </label>
-                    <input
-                        type="number"
-                        id="tripExpense"
-                        name="expense"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="e.g., 500"
-                        min="0"
-                        step="1"
-                        required
-                    />
-                </div>
-                <div>
-                    <label for="tripStartingKM" class="block text-sm font-medium text-gray-700 mb-1">
-                        Starting KM:
-                    </label>
-                    <input
-                        type="number"
-                        id="tripStartingKM"
-                        name="startingKM"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="e.g., 1000"
-                        min="0"
-                        step="1"
-                        required
-                    />
-                </div>
-                <div>
-                    <label for="tripEndKM" class="block text-sm font-medium text-gray-700 mb-1">
-                        End KM:
-                    </label>
-                    <input
-                        type="number"
-                        id="tripEndKM"
-                        name="endKM"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="e.g., 1200"
-                        min="0"
-                        step="1"
-                        required
-                    />
-                </div>
-                <div>
-                    <label for="tripName" class="block text-sm font-medium text-gray-700 mb-1">
-                        Name:
-                    </label>
-                    <input
-                        type="text"
-                        id="tripName"
-                        name="name"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="e.g., John Doe"
-                        required
-                    />
-                </div>
-                <div>
-                    <label for="tripRemarks" class="block text-sm font-medium text-gray-700 mb-1">
-                        Remarks:
-                    </label>
-                    <textarea
-                        id="tripRemarks"
-                        name="remarks"
-                        rows="3"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Any additional notes (optional)"
-                    ></textarea>
-                </div>
-                <div class="flex justify-end space-x-4 mt-6">
-                    <button
-                        type="button"
-                        id="cancelTripBtn"
-                        class="px-5 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        id="submitTripBtn"
-                        class="px-5 py-2 inline-flex items-center justify-center border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200"
-                    >
-                        Submit
-                    </button>
-                </div>
-            </form>
+        <!-- Edit Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">Edit Entry</div>
+                <form id="editForm">
+                    <div id="editFields">
+                        <!-- Dynamic form fields will be added here -->
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="cancel-button" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="submit-button">Update</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div id="listingModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 class="text-2xl font-bold mb-6 text-center text-gray-800">Add New Listing Item</h3>
-            <form id="listingForm" class="space-y-4">
-                <div>
-                    <label for="listingItemName" class="block text-sm font-medium text-gray-700 mb-1">
-                        Item Name:
-                    </label>
-                    <input
-                        type="text"
-                        id="listingItemName"
-                        name="itemName"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="e.g., Laptop, Keyboard"
-                        required
-                    />
-                </div>
-                <div>
-                    <label for="listingQuantity" class="block text-sm font-medium text-gray-700 mb-1">
-                        Quantity:
-                    </label>
-                    <input
-                        type="number"
-                        id="listingQuantity"
-                        name="quantity"
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="e.g., 5"
-                        min="1"
-                        step="1"
-                        required
-                    />
-                </div>
-                <div class="flex justify-end space-x-4 mt-6">
-                    <button
-                        type="button"
-                        id="cancelListingBtn"
-                        class="px-5 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        id="submitListingBtn"
-                        class="px-5 py-2 inline-flex items-center justify-center border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200"
-                    >
-                        Submit
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <script>
+        // Firebase Configuration - REPLACE WITH YOUR ACTUAL CONFIG
+        const firebaseConfig = {
+    apiKey: "AIzaSyDYdD9tyrDmiFi1fYKd6lvLiKICKLWVmnY",
+            authDomain: "ad-associates-official.firebaseapp.com",
+            databaseURL: "https://ad-associates-official-default-rtdb.firebaseio.com",
+            projectId: "ad-associates-official",
+            storageBucket: "ad-associates-official.firebasestorage.app",
+            messagingSenderId: "407411380354",
+            appId: "1:407411380354:web:f72766d2d3d5e14fdca49b",
+            measurementId: "G-T822NHJHWP"
+};
 
-    <script src="script.js" type="module"></script>
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Global variables
+        let currentEditId = null;
+        let currentEditType = null;
+        let tripData = {};
+        let listingData = {};
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+
+            if (pageId === 'trip') {
+                loadTripData();
+            } else if (pageId === 'listing') {
+                loadListingData();
+            }
+        }
+
+        // Modal functions
+        function openTripModal() {
+            document.getElementById('tripModal').style.display = 'block';
+        }
+
+        function closeTripModal() {
+            document.getElementById('tripModal').style.display = 'none';
+            document.getElementById('tripForm').reset();
+        }
+
+        function openListingModal() {
+            document.getElementById('listingModal').style.display = 'block';
+        }
+
+        function closeListingModal() {
+            document.getElementById('listingModal').style.display = 'none';
+            document.getElementById('listingForm').reset();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditId = null;
+            currentEditType = null;
+        }
+
+        // Trip form submission
+        document.getElementById('tripForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const tripEntry = {
+                fuelExpense: parseInt(document.getElementById('fuelExpense').value),
+                startingKM: parseInt(document.getElementById('startingKM').value),
+                endKM: parseInt(document.getElementById('endKM').value),
+                name: document.getElementById('driverName').value,
+                remarks: document.getElementById('remarks').value,
+                timestamp: Date.now(),
+                date: new Date().toLocaleDateString(),
+                time: new Date().toLocaleTimeString()
+            };
+
+            // Save to Firebase
+            db.ref('trips').push(tripEntry)
+                .then(() => {
+                    closeTripModal();
+                    loadTripData();
+                })
+                .catch((error) => {
+                    console.error('Error adding trip:', error);
+                    alert('Error adding trip. Please try again.');
+                });
+        });
+
+        // Listing form submission
+        document.getElementById('listingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const itemName = document.getElementById('itemName').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+
+            // Check if item already exists
+            let existingItemKey = null;
+            Object.keys(listingData).forEach(key => {
+                if (listingData[key].itemName.toLowerCase() === itemName.toLowerCase()) {
+                    existingItemKey = key;
+                }
+            });
+
+            if (existingItemKey) {
+                // Update existing item
+                const currentQuantity = listingData[existingItemKey].quantity;
+                const newQuantity = currentQuantity + quantity;
+                
+                db.ref('listings/' + existingItemKey).update({
+                    quantity: newQuantity,
+                    totalQuantity: newQuantity,
+                    lastUpdated: Date.now()
+                })
+                .then(() => {
+                    closeListingModal();
+                    loadListingData();
+                })
+                .catch((error) => {
+                    console.error('Error updating listing:', error);
+                    alert('Error updating listing. Please try again.');
+                });
+            } else {
+                // Create new item
+                const listingEntry = {
+                    itemName: itemName,
+                    quantity: quantity,
+                    totalQuantity: quantity,
+                    timestamp: Date.now(),
+                    date: new Date().toLocaleDateString(),
+                    time: new Date().toLocaleTimeString()
+                };
+
+                db.ref('listings').push(listingEntry)
+                    .then(() => {
+                        closeListingModal();
+                        loadListingData();
+                    })
+                    .catch((error) => {
+                        console.error('Error adding listing:', error);
+                        alert('Error adding listing. Please try again.');
+                    });
+            }
+        });
+
+        // Load trip data from Firebase
+        function loadTripData() {
+            db.ref('trips').on('value', (snapshot) => {
+                tripData = snapshot.val() || {};
+                renderTripTable();
+            });
+        }
+
+        // Load listing data from Firebase
+        function loadListingData() {
+            db.ref('listings').on('value', (snapshot) => {
+                listingData = snapshot.val() || {};
+                renderListingTable();
+            });
+        }
+
+        // Render trip table
+        function renderTripTable() {
+            const tbody = document.getElementById('tripTableBody');
+            tbody.innerHTML = '';
+            
+            let serialNo = 1;
+            let totalFuelExpense = 0;
+
+            Object.keys(tripData).forEach(key => {
+                const trip = tripData[key];
+                const row = document.createElement('tr');
+                
+                const isEditable = canEdit(trip.timestamp);
+                totalFuelExpense += trip.fuelExpense;
+
+                row.innerHTML = `
+                    <td>${serialNo++}</td>
+                    <td>₹${trip.fuelExpense}</td>
+                    <td>${trip.startingKM}</td>
+                    <td>${trip.endKM}</td>
+                    <td>${trip.name}</td>
+                    <td>${trip.remarks || '-'}</td>
+                    <td>
+                        <button class="edit-button" ${!isEditable ? 'disabled' : ''} 
+                                onclick="editEntry('${key}', 'trip')" 
+                                ${!isEditable ? 'title="Cannot edit after 12 hours"' : ''}>
+                            Edit
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('totalFuelExpense').textContent = `₹${totalFuelExpense}`;
+        }
+
+        // Render listing table
+        function renderListingTable() {
+            const tbody = document.getElementById('listingTableBody');
+            tbody.innerHTML = '';
+            
+            let serialNo = 1;
+
+            Object.keys(listingData).forEach(key => {
+                const listing = listingData[key];
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td>${serialNo++}</td>
+                    <td>${listing.itemName}</td>
+                    <td>
+                        <input type="number" class="editable-input" 
+                               value="${listing.quantity}" 
+                               onchange="updateQuantity('${key}', this.value)"
+                               min="0">
+                    </td>
+                    <td>${listing.totalQuantity}</td>
+                    <td>
+                        <button class="increment-button" onclick="incrementQuantity('${key}')">+1</button>
+                        <button class="edit-button" onclick="editEntry('${key}', 'listing')">Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Check if entry can be edited (within 12 hours)
+        function canEdit(timestamp) {
+            const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+            return (Date.now() - timestamp) < twelveHours;
+        }
+
+        // Edit entry
+        function editEntry(id, type) {
+            currentEditId = id;
+            currentEditType = type;
+
+            const data = type === 'trip' ? tripData[id] : listingData[id];
+            
+            if (type === 'trip' && !canEdit(data.timestamp)) {
+                alert('Cannot edit this entry. It has been more than 12 hours since creation.');
+                return;
+            }
+
+            const editFields = document.getElementById('editFields');
+            editFields.innerHTML = '';
+
+            if (type === 'trip') {
+                editFields.innerHTML = `
+                    <div class="form-group">
+                        <label>Fuel Expense (₹)</label>
+                        <input type="number" id="editFuelExpense" value="${data.fuelExpense}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Starting KM</label>
+                        <input type="number" id="editStartingKM" value="${data.startingKM}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End KM</label>
+                        <input type="number" id="editEndKM" value="${data.endKM}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="editName" value="${data.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Remarks</label>
+                        <textarea id="editRemarks" rows="3">${data.remarks || ''}</textarea>
+                    </div>
+                `;
+            } else {
+                editFields.innerHTML = `
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" id="editItemName" value="${data.itemName}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="editQuantity" value="${data.quantity}" min="0" required>
+                    </div>
+                `;
+            }
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        // Edit form submission
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!currentEditId || !currentEditType) return;
+
+            let updateData = {};
+
+            if (currentEditType === 'trip') {
+                updateData = {
+                    fuelExpense: parseInt(document.getElementById('editFuelExpense').value),
+                    startingKM: parseInt(document.getElementById('editStartingKM').value),
+                    endKM: parseInt(document.getElementById('editEndKM').value),
+                    name: document.getElementById('editName').value,
+                    remarks: document.getElementById('editRemarks').value,
+                    lastUpdated: Date.now()
+                };
+            } else {
+                const newQuantity = parseInt(document.getElementById('editQuantity').value);
+                updateData = {
+                    itemName: document.getElementById('editItemName').value,
+                    quantity: newQuantity,
+                    totalQuantity: newQuantity,
+                    lastUpdated: Date.now()
+                };
+            }
+
+            const ref = currentEditType === 'trip' ? 'trips' : 'listings';
+            
+            db.ref(`${ref}/${currentEditId}`).update(updateData)
+                .then(() => {
+                    closeEditModal();
+                    if (currentEditType === 'trip') {
+                        loadTripData();
+                    } else {
+                        loadListingData();
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error updating entry:', error);
+                    alert('Error updating entry. Please try again.');
+                });
+        });
+
+        // Update quantity directly
+        function updateQuantity(id, newQuantity) {
+            const quantity = parseInt(newQuantity) || 0;
+            
+            db.ref(`listings/${id}`).update({
+                quantity: quantity,
+                totalQuantity: quantity,
+                lastUpdated: Date.now()
+            })
+            .catch((error) => {
+                console.error('Error updating quantity:', error);
+                alert('Error updating quantity. Please try again.');
+                loadListingData(); // Reload to revert changes
+            });
+        }
+
+        // Increment quantity by 1
+        function incrementQuantity(id) {
+            const currentQuantity = listingData[id].quantity;
+            const newQuantity = currentQuantity + 1;
+            
+            db.ref(`listings/${id}`).update({
+                quantity: newQuantity,
+                totalQuantity: newQuantity,
+                lastUpdated: Date.now()
+            })
+            .catch((error) => {
+                console.error('Error incrementing quantity:', error);
+                alert('Error incrementing quantity. Please try again.');
+            });
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load initial data when the app starts
+            loadTripData();
+            loadListingData();
+        });
+    </script>
 </body>
 </html>
