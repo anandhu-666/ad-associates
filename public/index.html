@@ -77,7 +77,6 @@
         /* Page Styles */
         .page {
             display: none;
-            
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
@@ -104,7 +103,7 @@
         }
 
         .back-button {
-            background: #6c757d;
+            background: #747474;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -115,11 +114,11 @@
         }
 
         .back-button:hover {
-            background: #5a6268;
+            background: #42484d;
         }
 
         /* Button Styles */
-        .add-button {
+        .add-button,.add-button-listing{
             background: #28a745;
             color: white;
             border: none;
@@ -131,7 +130,7 @@
             transition: background 0.3s ease;
         }
 
-        .add-button:hover {
+        .add-button:hover ,.add-button-listing:hover{
             background: #218838;
         }
 
@@ -154,6 +153,22 @@
         .edit-button:disabled {
             background: #6c757d;
             cursor: not-allowed;
+        }
+
+        .download-button{
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .download-button:hover{
+            background: #c82333;
         }
 
         /* Table Styles */
@@ -359,6 +374,7 @@
             <div class="subtitle">Trip & Listing Management System</div>
         </div>
 
+
         <!-- Home Page -->
         <div id="home" class="page active">
             <div class="home-container">
@@ -373,9 +389,7 @@
                 <div class="page-title">Trip Management</div>
                 <button class="back-button" onclick="showPage('home')">← Back</button>
             </div>
-            
-            <button class="add-button" onclick="openTripModal()">Add More</button>
-            
+
             <div class="table-container">
                 <table>
                     <thead>
@@ -400,6 +414,13 @@
                     </tfoot>
                 </table>
             </div>
+            <br>
+            <br>
+                        
+            <button class="add-button" onclick="openTripModal()">Add More</button><br>
+            <button class="download-button" onclick="downloadTripsPDF()">📄 Download CSV</button>
+            <button class="download-button" onclick="printTripsReport()">🖨️ Print PDF</button>
+            
         </div>
 
         <!-- Listing Page -->
@@ -408,8 +429,6 @@
                 <div class="page-title">Listing Management</div>
                 <button class="back-button" onclick="showPage('home')">← Back</button>
             </div>
-            
-            <button class="add-button" onclick="openListingModal()">Add More</button>
             
             <div class="table-container">
                 <table>
@@ -427,6 +446,10 @@
                     </tbody>
                 </table>
             </div>
+            <br><br>
+
+            <button class="add-button-listing" onclick="openListingModal()">Add More</button><br>
+            <button class="download-button" onclick="printListingsReport()">🖨️ Print PDF</button>
         </div>
 
         <!-- Trip Modal -->
@@ -879,6 +902,121 @@
             loadTripData();
             loadListingData();
         });
+
+        // PDF Download function
+        function downloadTripsPDF() {
+            if (Object.keys(tripData).length === 0) {
+                alert('No trip data available to download.');
+                return;
+            }
+            // Create CSV content
+            var csvContent = 'Serial No,Fuel Expense,Starting KM,End KM,Name,Remarks,Date\n';
+            var serialNo = 1;
+            var totalFuelExpense = 0;
+            Object.keys(tripData).forEach(function(key) {
+                var trip = tripData[key];
+                totalFuelExpense += trip.fuelExpense;
+                csvContent += serialNo + ',' +
+                    trip.fuelExpense + ',' +
+                    trip.startingKM + ',' +
+                    trip.endKM + ',' +
+                    '"' + trip.name + '",' +
+                    '"' + (trip.remarks || '-') + '",' +
+                    '"' + (trip.date || 'N/A') + '"\n';
+                serialNo++;
+            });
+            csvContent += '\nTotal Fuel Expense:,' + totalFuelExpense + '\n';
+            csvContent += 'Generated on:,"' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString() + '"';
+            // Create and download CSV file
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            if (link.download !== undefined) {
+                var url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'AD_Associates_Trip_Report_' + new Date().toISOString().split('T')[0] + '.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+
+
+
+
+
+        // Alternative HTML/Print function
+        function printTripsReport() {
+            if (Object.keys(tripData).length === 0) {
+                alert('No trip data available to print.');
+                return;
+            }
+            // Hide everything except the trip table
+            var originalDisplay = [];
+            var elementsToHide = document.querySelectorAll('body > *:not(.container)');
+            elementsToHide.forEach(function(el, index) {
+                originalDisplay[index] = el.style.display;
+                el.style.display = 'none';
+            });
+            // Hide navigation elements
+            document.querySelector('.page-header').style.display = 'none';
+            document.querySelector('.add-button').style.display = 'none';// Hide both buttons more explicitly
+            document.querySelector('.download-button[onclick="downloadTripsPDF()"]').style.display = 'none';
+            document.querySelector('.download-button[onclick="printTripsReport()"]').style.display = 'none';
+            // Add print styles
+            var printStyle = document.createElement('style');
+            printStyle.textContent = '@media print { body { font-family: Arial, sans-serif; } .table-container { box-shadow: none; } }';
+            document.head.appendChild(printStyle);
+            // Print
+            window.print();
+            // Restore original display
+            setTimeout(function() {
+                elementsToHide.forEach(function(el, index) {
+                    el.style.display = originalDisplay[index];
+                });
+                document.querySelector('.page-header').style.display = 'flex';
+                document.querySelector('.add-button').style.display = 'inline-block';// Hide both buttons more explicitly
+document.querySelector('.download-button[onclick="downloadTripsPDF()"]').style.display = 'inline-block';
+document.querySelector('.download-button[onclick="printTripsReport()"]').style.display = 'inline-block';
+                document.head.removeChild(printStyle);
+            }, 10);
+        }
+
+        function printListingsReport() {
+            if (Object.keys(listingData).length === 0) {
+                alert('No trip data available to print.');
+                return;
+            }
+            // Hide everything except the trip table
+            var originalDisplay = [];
+            var elementsToHide = document.querySelectorAll('body > *:not(.container)');
+            elementsToHide.forEach(function(el, index) {
+                originalDisplay[index] = el.style.display;
+                el.style.display = 'none';
+            });
+            // Hide navigation elements
+            document.querySelector('.page-header').style.display = 'none';
+            document.querySelector('.add-button-listing').style.display = 'none';
+           
+            document.querySelector('.download-button[onclick="printListingsReport()"]').style.display = 'none';
+            // Add print styles
+            var printStyle = document.createElement('style');
+            printStyle.textContent = '@media print { body { font-family: Arial, sans-serif; } .table-container { box-shadow: none; } }';
+            document.head.appendChild(printStyle);
+            // Print
+            window.print();
+            // Restore original display
+            setTimeout(function() {
+                elementsToHide.forEach(function(el, index) {
+                    el.style.display = originalDisplay[index];
+                });
+                document.querySelector('.page-header').style.display = 'flex';
+                document.querySelector('.add-button-listing').style.display = 'inline-block';
+                document.querySelector('.download-button[onclick="printListingsReport()"]').style.display = 'inline-block';
+                document.head.removeChild(printStyle);
+            }, 10);
+        }
     </script>
 </body>
 </html>
