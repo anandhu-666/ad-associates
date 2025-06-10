@@ -752,7 +752,7 @@
 
         // Check if entry can be edited (within 12 hours)
         function canEdit(timestamp) {
-            const twelveHours = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+            const twelveHours = 24 * 60 * 60 * 1000; // 12 hours in milliseconds
             return (Date.now() - timestamp) < twelveHours;
         }
 
