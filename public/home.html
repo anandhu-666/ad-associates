@@ -1,5 +1,388 @@
-<html>
-<body>
-<h1> hello world</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AD Associates</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- jsPDF and jsPDF-AutoTable for PDF generation - These are no longer needed for the button but kept if other PDF functionality exists -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase SDKs - Exposed globally for script.js to access -->
+    <script type="module">
+        // Import Firebase modules for Realtime Database, Auth, and Analytics
+        // Using version 9.22.2 as per user's provided imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+        import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js"; // Added for getAnalytics
+
+        // Expose Firebase modules globally for script.js to access
+        // This is necessary because script.js is also a module and needs direct access to these objects
+        window.firebase = { 
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, 
+            onAuthStateChanged, getDatabase, ref, onValue, push, set, update,
+            getAnalytics // Exposed getAnalytics
+        };
+    </script>
+    <style>
+        /* Custom styles to ensure Inter font is applied and general body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            color: #374151; /* text-gray-800 */
+        }
+        /* Hidden class to toggle page visibility */
+        .hidden {
+            display: none;
+        }
+        /* Modal overlay styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75); /* bg-gray-600 bg-opacity-75 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 1rem;
+        }
+        /* Modal content styling */
+        .modal-content {
+            background-color: #ffffff; /* bg-white */
+            padding: 2rem;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* shadow-2xl */
+            width: 100%;
+            max-width: 32rem; /* max-w-lg */
+        }
+        /* Table responsive styling */
+        table {
+            border-collapse: collapse;
+            width: 100%; /* Ensure table takes full width of its container */
+        }
+        th, td {
+            padding: 12px 24px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
+            white-space: nowrap; /* Prevent text wrapping in table headers/cells */
+        }
+        thead th {
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        tbody tr:hover {
+            background-color: #f9fafb; /* hover:bg-gray-50 */
+        }
+        /* Style for editable input fields in tables */
+        .editable-input {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.25rem 0.5rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .editable-input:focus {
+            outline: none;
+            border-color: #3b82f6; /* focus:border-blue-500 */
+            box-shadow: 0 0 0 1px #3b82f6; /* focus:ring-blue-500 */
+        }
+        .editable-input:disabled {
+            background-color: #e5e7eb; /* bg-gray-200 */
+            cursor: not-allowed;
+            color: #6b7280; /* text-gray-500 */
+            border-color: #d1d5db;
+        }
+
+        /* Responsive table overflow for small screens */
+        @media (max-width: 768px) {
+            .overflow-x-auto {
+                overflow-x: auto;
+            }
+            th, td {
+                padding: 8px 12px;
+            }
+            /* Adjusted min-width for table to accommodate new column */
+            .min-w-full {
+                min-width: 750px; /* Increased to make space for Remarks column */
+            }
+        }
+        /* Styling for disabled button state */
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background-image: none; /* Remove gradient for disabled state */
+            background-color: #9ca3af; /* A gray background for disabled */
+            box-shadow: none; /* No shadow when disabled */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-md p-4 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold text-blue-800 tracking-tight">AD Associates</h1>
+            <div class="flex items-center space-x-4">
+                <span id="userIdDisplay" class="text-sm font-medium text-gray-600">User ID: Loading...</span>
+                <button id="backToHomeBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 hidden">
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 md:p-8 flex items-start justify-center">
+
+        <section id="homePage" class="flex flex-col items-center justify-center h-full w-full max-w-md bg-white rounded-xl shadow-2xl p-8 transition duration-500 hover:shadow-xl">
+            <h2 class="text-4xl font-bold text-gray-900 mb-10 text-center">Welcome to AD Associates</h2>
+            <div class="flex flex-col space-y-6 w-full">
+                <button id="tripBtn" class="w-full px-8 py-4 bg-gradient-to-r from-green-500 to-green-700 text-white text-2xl font-semibold rounded-lg shadow-xl hover:from-green-600 hover:to-green-800 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300 hover:shadow-xl">
+                    Trip
+                </button>
+                <button id="listingBtn" class="w-full px-8 py-4 bg-gradient-to-r from-purple-500 to-purple-700 text-white text-2xl font-semibold rounded-lg shadow-xl hover:from-purple-600 hover:to-purple-800 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-purple-300 hover:shadow-xl">
+                    Listing
+                </button>
+            </div>
+        </section>
+
+        <section id="tripPage" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl transition duration-500 hover:shadow-xl hidden">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Trip Expenses</h2>
+
+            <div class="flex justify-end p-4 mb-4 bg-blue-50 rounded-lg shadow-inner">
+                <span class="text-xl font-bold text-blue-800">Total Expense: ₹<span id="totalExpenseDisplay">0</span></span>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
+                <table id="tripTable" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Serial No
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Expense
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Starting KM
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                End KM
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Remarks
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <button id="addTripBtn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 hover:shadow-xl">
+                    Add More Expense
+                </button>
+                <!-- PDF Download button removed as per request -->
+            </div>
+        </section>
+
+        <section id="listingPage" class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl transition duration-500 hover:shadow-xl hidden">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6 text-center">Item Listing</h2>
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
+                <table id="listingTable" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Serial No
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Item Name
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quantity
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Total Quantity
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                <button id="addListingBtn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-300 hover:shadow-xl">
+                    Add More Item
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white p-4 text-center text-sm">
+        &copy; <span id="currentYear"></span> AD Associates. All rights reserved.
+    </footer>
+
+    <div id="tripModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-6 text-center text-gray-800">Add New Trip Expense</h3>
+            <form id="tripForm" class="space-y-4">
+                <div>
+                    <label for="tripExpense" class="block text-sm font-medium text-gray-700 mb-1">
+                        Expense:
+                    </label>
+                    <input
+                        type="number"
+                        id="tripExpense"
+                        name="expense"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="e.g., 500"
+                        min="0"
+                        step="1"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="tripStartingKM" class="block text-sm font-medium text-gray-700 mb-1">
+                        Starting KM:
+                    </label>
+                    <input
+                        type="number"
+                        id="tripStartingKM"
+                        name="startingKM"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="e.g., 1000"
+                        min="0"
+                        step="1"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="tripEndKM" class="block text-sm font-medium text-gray-700 mb-1">
+                        End KM:
+                    </label>
+                    <input
+                        type="number"
+                        id="tripEndKM"
+                        name="endKM"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="e.g., 1200"
+                        min="0"
+                        step="1"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="tripName" class="block text-sm font-medium text-gray-700 mb-1">
+                        Name:
+                    </label>
+                    <input
+                        type="text"
+                        id="tripName"
+                        name="name"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="e.g., John Doe"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="tripRemarks" class="block text-sm font-medium text-gray-700 mb-1">
+                        Remarks:
+                    </label>
+                    <textarea
+                        id="tripRemarks"
+                        name="remarks"
+                        rows="3"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Any additional notes (optional)"
+                    ></textarea>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button
+                        type="button"
+                        id="cancelTripBtn"
+                        class="px-5 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        id="submitTripBtn"
+                        class="px-5 py-2 inline-flex items-center justify-center border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200"
+                    >
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="listingModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-6 text-center text-gray-800">Add New Listing Item</h3>
+            <form id="listingForm" class="space-y-4">
+                <div>
+                    <label for="listingItemName" class="block text-sm font-medium text-gray-700 mb-1">
+                        Item Name:
+                    </label>
+                    <input
+                        type="text"
+                        id="listingItemName"
+                        name="itemName"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="e.g., Laptop, Keyboard"
+                        required
+                    />
+                </div>
+                <div>
+                    <label for="listingQuantity" class="block text-sm font-medium text-gray-700 mb-1">
+                        Quantity:
+                    </label>
+                    <input
+                        type="number"
+                        id="listingQuantity"
+                        name="quantity"
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="e.g., 5"
+                        min="1"
+                        step="1"
+                        required
+                    />
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button
+                        type="button"
+                        id="cancelListingBtn"
+                        class="px-5 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        id="submitListingBtn"
+                        class="px-5 py-2 inline-flex items-center justify-center border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200"
+                    >
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js" type="module"></script>
 </body>
 </html>
