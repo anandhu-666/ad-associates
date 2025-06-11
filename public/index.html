@@ -6,6 +6,13 @@
     <title>AD Associates</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-database-compat.min.js"></script>
+    <!-- jsPDF core -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<!-- Table helper -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <style>
         * {
             margin: 0;
@@ -365,7 +372,25 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
-    </style>
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+  }
+  .modal-box {
+    background: white;
+    padding: 20px;
+    width: 300px;
+    margin: 100px auto; /* centers vertically & horizontally roughly */
+    border-radius: 8px;
+  }
+</style>
+
 </head>
 <body>
     <div class="container">
@@ -394,7 +419,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Serial No</th>
+                            <th>Date</th>
                             <th>Fuel Expense</th>
                             <th>Starting KM</th>
                             <th>End KM</th>
@@ -421,6 +446,11 @@
             <button class="download-button" onclick="downloadTripsPDF()">📄 Download CSV</button>
             <button class="download-button" onclick="printTripsReport()">🖨️ Print PDF</button>
             
+            <!-- Main Button -->
+
+<!-- Modal -->
+
+
         </div>
 
         <!-- Listing Page -->
@@ -449,7 +479,29 @@
             <br><br>
 
             <button class="add-button-listing" onclick="openListingModal()">Add More</button><br>
-            <button class="download-button" onclick="printListingsReport()">🖨️ Print PDF</button>
+            <button class="download-button" onclick="openPopUp()">🖨️ Print PDF</button>
+            <div id="quotationModal" class="modal-overlay" style="display: none;">
+               <form id="ListingsdownloadForm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                  <h3>Enter Quotation Details</h3>
+                  </div>
+                  <div class="form-group">
+                    <label>From: <input type="text" id="inputFrom" placeholder="Company Name" required></label>
+                  </div>
+                  <div class="form-group">
+                    <label>To: <input type="text" id="inputTo" placeholder="Customer Name" required></label>
+                  </div>
+                  <div class="form-group">
+                    <label>Date: <input type="date" id="inputDate" required></label>
+                  </div>
+                  <div class="modal-buttons">
+                    <button type="button" class="cancel-button" onclick="closeListingDownload()">Cancel</button>
+                    <button type="submit" class="submit-button" onclick="submitQuotation()">Submit</button>
+                  </div>
+                </div>
+               </form>
+              </div>
         </div>
 
         <!-- Trip Modal -->
@@ -457,6 +509,10 @@
             <div class="modal-content">
                 <div class="modal-header">Add Trip Entry</div>
                 <form id="tripForm">
+                    <div class="form-group">
+                        <label for="dateTrip">Date</label>
+                        <input id="dateTrip" type="date">
+                    </div>
                     <div class="form-group">
                         <label for="fuelExpense">Fuel Expense (₹)</label>
                         <input type="number" id="fuelExpense" required>
@@ -569,7 +625,10 @@
             document.getElementById('tripModal').style.display = 'none';
             document.getElementById('tripForm').reset();
         }
-
+        function closeListingDownload() {
+            document.getElementById('quotationModal').style.display = 'none';
+            document.getElementById('ListingsdownloadForm').reset();
+        }
         function openListingModal() {
             document.getElementById('listingModal').style.display = 'block';
         }
@@ -588,16 +647,18 @@
         // Trip form submission
         document.getElementById('tripForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+            flatpickr("#dateTrip", {
+                dateFormat: "d/m/Y" // dd/mm/yyyy
+            });
+
             const tripEntry = {
+                date : document.getElementById('dateTrip').value,
                 fuelExpense: parseInt(document.getElementById('fuelExpense').value),
                 startingKM: parseInt(document.getElementById('startingKM').value),
                 endKM: parseInt(document.getElementById('endKM').value),
                 name: document.getElementById('driverName').value,
                 remarks: document.getElementById('remarks').value,
-                timestamp: Date.now(),
-                date: new Date().toLocaleDateString(),
-                time: new Date().toLocaleTimeString()
+                timestamp :  Date.now()
             };
 
             // Save to Firebase
@@ -651,9 +712,6 @@
                     itemName: itemName,
                     quantity: quantity,
                     totalQuantity: quantity,
-                    timestamp: Date.now(),
-                    date: new Date().toLocaleDateString(),
-                    time: new Date().toLocaleTimeString()
                 };
 
                 db.ref('listings').push(listingEntry)
@@ -688,8 +746,6 @@
         function renderTripTable() {
             const tbody = document.getElementById('tripTableBody');
             tbody.innerHTML = '';
-            
-            let serialNo = 1;
             let totalFuelExpense = 0;
 
             Object.keys(tripData).forEach(key => {
@@ -700,7 +756,7 @@
                 totalFuelExpense += trip.fuelExpense;
 
                 row.innerHTML = `
-                    <td>${serialNo++}</td>
+                    <td>${trip.date}</td>
                     <td>₹${trip.fuelExpense}</td>
                     <td>${trip.startingKM}</td>
                     <td>${trip.endKM}</td>
@@ -942,49 +998,99 @@
         }
 
 
+// Show the modal
+function openPopUp() {
+  document.getElementById('quotationModal').style.display = 'block';
+}
+// Handle submission
+function submitQuotation() {
+  const companyName = document.getElementById('inputFrom').value.trim();
+  const customerName = document.getElementById('inputTo').value.trim();
+  const dateValue = document.getElementById('inputDate').value;
+
+  if (!companyName || !customerName || !dateValue) {
+    alert('Please fill all fields.');
+    return;
+  }
+
+  console.log({ companyName, customerName, dateValue });
+
+  // Hide modal
+  document.getElementById('quotationModal').style.display = 'none';
+
+  // Call your main function with formatted date
+  printListingsReport({
+    companyName,
+    customerName,
+    date: formatDateToDDMMYYYY(new Date(dateValue))
+  });
+}
+
+function formatDateToDDMMYYYY(dateObj) {
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = dateObj.getFullYear();
+  return `${day}/${month}/${year}`;
+}
 
 
 
 
         // Alternative HTML/Print function
+        async function printListingsReport({
+  companyName,
+  customerName,
+  date = new Date().toLocaleDateString()
+} = {}) {
+console.log(companyName)
+  if (!listingData || Object.keys(listingData).length === 0) {
+    alert('No trip data available to print.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // Header
+  doc.setFontSize(18);
+  doc.text('Quotation', 105, 20, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.text(`${companyName}`, 105, 28,{align:'center'});
+
+  doc.setFontSize(10);
+  doc.text(`Customer: ${customerName}`, 15, 38);
+  doc.text(`Date: ${date}`, 160, 38);
+
+  // Table
+const headers = ['Sl.No', 'itemName', 'totalQuantity'];
+const body = [];
+
+Object.values(listingData).forEach((row, index) => {
+  body.push(headers.map(h =>
+    h === 'Sl.No'
+      ? index + 1
+      : row[h] ?? ''
+  ));
+});
+
+
+  doc.autoTable({
+    head: [headers.map(h => h.replace(/([A-Z])/g, ' $1').trim())],
+    body,
+    startY: 45,
+    styles: { fontSize: 9 }
+  });
+
+  const afterTableY = doc.lastAutoTable.finalY + 10;
+
+  doc.save('quotation.pdf');
+}
+
+
+
         function printTripsReport() {
             if (Object.keys(tripData).length === 0) {
-                alert('No trip data available to print.');
-                return;
-            }
-            // Hide everything except the trip table
-            var originalDisplay = [];
-            var elementsToHide = document.querySelectorAll('body > *:not(.container)');
-            elementsToHide.forEach(function(el, index) {
-                originalDisplay[index] = el.style.display;
-                el.style.display = 'none';
-            });
-            // Hide navigation elements
-            document.querySelector('.page-header').style.display = 'none';
-            document.querySelector('.add-button').style.display = 'none';// Hide both buttons more explicitly
-            document.querySelector('.download-button[onclick="downloadTripsPDF()"]').style.display = 'none';
-            document.querySelector('.download-button[onclick="printTripsReport()"]').style.display = 'none';
-            // Add print styles
-            var printStyle = document.createElement('style');
-            printStyle.textContent = '@media print { body { font-family: Arial, sans-serif; } .table-container { box-shadow: none; } }';
-            document.head.appendChild(printStyle);
-            // Print
-            window.print();
-            // Restore original display
-            setTimeout(function() {
-                elementsToHide.forEach(function(el, index) {
-                    el.style.display = originalDisplay[index];
-                });
-                document.querySelector('.page-header').style.display = 'flex';
-                document.querySelector('.add-button').style.display = 'inline-block';// Hide both buttons more explicitly
-document.querySelector('.download-button[onclick="downloadTripsPDF()"]').style.display = 'inline-block';
-document.querySelector('.download-button[onclick="printTripsReport()"]').style.display = 'inline-block';
-                document.head.removeChild(printStyle);
-            }, 10);
-        }
-
-        function printListingsReport() {
-            if (Object.keys(listingData).length === 0) {
                 alert('No trip data available to print.');
                 return;
             }
@@ -1000,7 +1106,7 @@ document.querySelector('.download-button[onclick="printTripsReport()"]').style.d
             document.querySelector('.page-header').style.display = 'none';
             document.querySelector('.add-button-listing').style.display = 'none';
            
-            document.querySelector('.download-button[onclick="printListingsReport()"]').style.display = 'none';
+            document.querySelector('.download-button[onclick="printTripsReport()"]').style.display = 'none';
             // Add print styles
             var printStyle = document.createElement('style');
             printStyle.textContent = '@media print { body { font-family: Arial, sans-serif; } .table-container { box-shadow: none; } }';
@@ -1014,7 +1120,7 @@ document.querySelector('.download-button[onclick="printTripsReport()"]').style.d
                 });
                 document.querySelector('.page-header').style.display = 'flex';
                 document.querySelector('.add-button-listing').style.display = 'inline-block';
-                document.querySelector('.download-button[onclick="printListingsReport()"]').style.display = 'inline-block';
+                document.querySelector('.download-button[onclick="printTripsReport()"]').style.display = 'inline-block';
                 document.head.removeChild(printStyle);
             }, 10);
         }
