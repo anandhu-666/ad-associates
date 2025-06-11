@@ -511,7 +511,7 @@
                 <form id="tripForm">
                     <div class="form-group">
                         <label for="dateTrip">Date</label>
-                        <input id="dateTrip" type="date">
+                        <input id="dateTrip" type="date" required>
                     </div>
                     <div class="form-group">
                         <label for="fuelExpense">Fuel Expense (₹)</label>
@@ -830,6 +830,10 @@
             if (type === 'trip') {
                 editFields.innerHTML = `
                     <div class="form-group">
+                        <label for="dateTrip">Date</label>
+                        <input id="editdateTrip" type="date" value="${data.date}" required>
+                    </div>
+                    <div class="form-group">
                         <label>Fuel Expense (₹)</label>
                         <input type="number" id="editFuelExpense" value="${data.fuelExpense}" required>
                     </div>
@@ -876,6 +880,7 @@
 
             if (currentEditType === 'trip') {
                 updateData = {
+                    date : document.getElementById('editdateTrip').value,
                     fuelExpense: parseInt(document.getElementById('editFuelExpense').value),
                     startingKM: parseInt(document.getElementById('editStartingKM').value),
                     endKM: parseInt(document.getElementById('editEndKM').value),
